@@ -5,10 +5,23 @@ import './App.css'
 function App() {
   const [apiStatus, setApiStatus] = useState('checking...')
   const [recipes, setRecipes] = useState([])
-  const [ingredients, setIngredients] = useState('')
+  const [selectedUser, setSelectedUser] = useState(0)
+  const [userRecommendations, setUserRecommendations] = useState([])
+  const [selectedRecipe, setSelectedRecipe] = useState(null)
+  const [similarRecipes, setSimilarRecipes] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('collaborative') // 'collaborative', 'content-based', or 'clustering'
   const [clusters, setClusters] = useState([])
   const [showClusters, setShowClusters] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [predictionResult, setPredictionResult] = useState(null)
+  const [newIngredient, setNewIngredient] = useState({
+    name: '',
+    protein: '',
+    carbs: '',
+    fat: '',
+    calories: '',
+    fiber: ''
+  })
 
   useEffect(() => {
     // Check API health
@@ -16,28 +29,53 @@ function App() {
       .then(res => setApiStatus(res.data.message))
       .catch(() => setApiStatus('API not reachable'))
 
-    // Load recipes
-    axios.get('/api/recipes')
-      .then(res => setRecipes(res.data))
-      .catch(err => console.error('Error loading recipes:', err))
+    // Load all recipes
+    loadRecipes()
   }, [])
 
-  const handleRecommend = () => {
-    const ingredientList = ingredients.split(',').map(i => i.trim()).filter(i => i)
-    axios.post('/api/recommend', { ingredients: ingredientList })
+  const loadRecipes = () => {
+    axios.get('/api/recipes')
       .then(res => {
-        console.log('Recommendations:', res.data)
-        alert('Check console for recommendations (ML logic to be implemented)')
+        setRecipes(res.data.recipes || [])
       })
-      .catch(err => console.error('Error:', err))
+      .catch(err => console.error('Error loading recipes:', err))
+  }
+
+  const getCollaborativeRecommendations = () => {
+    setLoading(true)
+    axios.get(`/api/recommend/user/${selectedUser}?top_n=5`)
+      .then(res => {
+        setUserRecommendations(res.data.recommendations)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Error getting recommendations:', err)
+        setLoading(false)
+      })
+  }
+
+  const getContentBasedRecommendations = (recipeId) => {
+    setLoading(true)
+    setSelectedRecipe(recipeId)
+    axios.get(`/api/recommend/similar/${recipeId}?top_n=5`)
+      .then(res => {
+        setSimilarRecipes(res.data.recommendations)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Error getting similar recipes:', err)
+        setLoading(false)
+      })
   }
 
   const loadIngredientClusters = () => {
     setLoading(true)
     axios.get('/api/cluster/ingredients')
       .then(res => {
-        setClusters(res.data.clusters)
-        setShowClusters(true)
+        if (res.data.success) {
+          setClusters(res.data.clusters)
+          setShowClusters(true)
+        }
         setLoading(false)
       })
       .catch(err => {
@@ -46,8 +84,46 @@ function App() {
       })
   }
 
+  const predictIngredientCluster = () => {
+    const features = [
+      parseFloat(newIngredient.protein),
+      parseFloat(newIngredient.carbs),
+      parseFloat(newIngredient.fat),
+      parseFloat(newIngredient.calories),
+      parseFloat(newIngredient.fiber)
+    ]
+
+    if (features.some(isNaN)) {
+      alert('Please fill in all nutritional values')
+      return
+    }
+
+    setLoading(true)
+    axios.post('/api/cluster/predict', {
+      name: newIngredient.name || 'Unknown Ingredient',
+      features: features
+    })
+      .then(res => {
+        if (res.data.success) {
+          setPredictionResult(res.data)
+        }
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Error predicting cluster:', err)
+        setLoading(false)
+      })
+  }
+
+  const handleIngredientChange = (field, value) => {
+    setNewIngredient(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <header className="text-center mb-12">
@@ -55,7 +131,7 @@ function App() {
             🍳 Recipe Recommender
           </h1>
           <p className="text-xl text-gray-600">
-            Smart recipe suggestions with ML-powered ingredient substitutions
+            Personalized recipe suggestions using collaborative filtering
           </p>
           <div className="mt-4 inline-block bg-white px-4 py-2 rounded-full shadow">
             <span className="text-sm text-gray-600">API Status: </span>
@@ -63,161 +139,330 @@ function App() {
           </div>
         </header>
 
-        {/* Main Content */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          {/* Input Section */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">
-              Find Recipes
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Enter ingredients you have (comma-separated):
-            
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-bold mb-3 text-gray-800">
-                🔍 Ingredient Clustering (K-Means)
-              </h3>
-              <p className="text-sm text-gray-600 mb-3">
-                Discover how ingredients are grouped by nutritional similarity
+        {/* Tab Navigation */}
+        <div className="max-w-6xl mx-auto mb-8">
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={() => setActiveTab('clustering')}
+              className={`px-6 py-3 rounded-lg font-semibold transition ${
+                activeTab === 'clustering'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              🔍 Ingredient Clustering
+            </button>
+            <button
+              onClick={() => setActiveTab('collaborative')}
+              className={`px-6 py-3 rounded-lg font-semibold transition ${
+                activeTab === 'collaborative'
+                  ? 'bg-purple-600 text-white shadow-lg'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              👥 Collaborative Filtering
+            </button>
+            <button
+              onClick={() => setActiveTab('content-based')}
+              className={`px-6 py-3 rounded-lg font-semibold transition ${
+                activeTab === 'content-based'
+                  ? 'bg-pink-600 text-white shadow-lg'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              🔍 Content-Based Filtering
+            </button>
+          </div>
+        </div>
+
+        {/* Ingredient Clustering Tab */}
+        {activeTab === 'clustering' && (
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                🔍 Ingredient Clustering
+              </h2>
+              <p className="text-gray-600 mb-6">
+                View ingredient groups or predict which cluster a new ingredient belongs to
               </p>
+              
               <button
                 onClick={loadIngredientClusters}
                 disabled={loading}
-                className="w-full bg-secondary hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 disabled:opacity-50"
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 mb-6"
               >
-                {loading ? 'Loading...' : 'View Ingredient Clusters'}
+                {loading ? 'Loading...' : showClusters ? 'Refresh Clusters' : 'View All Clusters'}
               </button>
-            </div>
-            </p>
-            <textarea
-              className="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:border-primary"
-              rows="4"
-              placeholder="e.g., chicken, tomatoes, pasta, garlic"
-              value={ingredients}
-              onChange={(e) => setIngredients(e.target.value)}
-            />
-            <button
-              onClick={handleRecommend}
-              className="w-full bg-primary hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
-            >
-              Get Recommendations
-            </button>
-          </div>
 
-          {/* Features Section */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">
-              ML Features
-            </h2>
-            <ul className="space-y-3">
-              <li className="flex items-start">
-                <span className="text-2xl mr-3">🔍</span>
-                <div>
-                  <strong>Ingredient Clustering</strong>
-                  <p className="text-sm text-gray-600">Groups similar ingredients using k-means</p>
+              {showClusters && clusters.length > 0 && (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                  {clusters.map((cluster) => (
+                    <div key={cluster.cluster_id} className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg p-6 shadow-md">
+                      <h3 className="text-lg font-bold text-gray-800 mb-2">{cluster.cluster_name}</h3>
+                      <p className="text-sm text-gray-600 mb-3">Cluster #{cluster.cluster_id} • {cluster.count} ingredients</p>
+                      <ul className="space-y-1">
+                        {cluster.ingredients.map((ing, idx) => (
+                          <li key={idx} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
+                            {ing}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
-              </li>
-              <li className="flex items-start">
-                <span className="text-2xl mr-3">🎯</span>
-                <div>
-                  <strong>Recipe Recommendation</strong>
-                  <p className="text-sm text-gray-600">Collaborative filtering for personalized suggestions</p>
+              )}
+
+              <div className="border-t pt-8">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">🎯 Predict Ingredient Cluster</h3>
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Ingredient Name"
+                    value={newIngredient.name}
+                    onChange={(e) => handleIngredientChange('name', e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Protein (g)"
+                    value={newIngredient.protein}
+                    onChange={(e) => handleIngredientChange('protein', e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Carbs (g)"
+                    value={newIngredient.carbs}
+                    onChange={(e) => handleIngredientChange('carbs', e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Fat (g)"
+                    value={newIngredient.fat}
+                    onChange={(e) => handleIngredientChange('fat', e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Calories"
+                    value={newIngredient.calories}
+                    onChange={(e) => handleIngredientChange('calories', e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Fiber (g)"
+                    value={newIngredient.fiber}
+                    onChange={(e) => handleIngredientChange('fiber', e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg"
+                  />
                 </div>
-              </li>
-              <li className="flex items-start">
-                <span className="text-2xl mr-3">🔄</span>
-                <div>
-                  <strong>Substitution Finder</strong>
-                  <p className="text-sm text-gray-600">Smart ingredient swaps using association rules</p>
-                </div>
-              </li>
-              <li className="flex items-start">
-                <span className="text-2xl mr-3">🌍</span>
-            Ingredient Clusters Display */}
-        {showClusters && clusters.length > 0 && (
-          <div className="mt-12 max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold text-gray-800">
-                Ingredient Clusters (K-Means ML)
-              </h2>
-              <button
-                onClick={() => setShowClusters(false)}
-                className="text-gray-600 hover:text-gray-800 font-semibold"
-              >
-                Hide ✕
-              </button>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {clusters.map(cluster => (
-                <div key={cluster.cluster_id} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition duration-300">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-800">
-                      {cluster.cluster_name}
-                    </h3>
-                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-                      {cluster.count} items
-                    </span>
+                <button
+                  onClick={predictIngredientCluster}
+                  disabled={loading}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                >
+                  {loading ? 'Predicting...' : 'Predict Cluster'}
+                </button>
+
+                {predictionResult && (
+                  <div className="mt-6 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-6">
+                    <h4 className="text-lg font-bold text-gray-800 mb-2">Prediction Result</h4>
+                    <p className="text-gray-700 mb-2">
+                      <strong>{predictionResult.ingredient}</strong> belongs to:
+                    </p>
+                    <p className="text-xl font-bold text-blue-700 mb-3">{predictionResult.cluster_name}</p>
+                    <p className="text-sm text-gray-600 mb-2">Similar ingredients:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {predictionResult.similar_ingredients.map((ing, idx) => (
+                        <span key={idx} className="bg-white px-3 py-1 rounded text-sm text-gray-700">
+                          {ing}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {cluster.ingredients.map((ing, idx) => (
-                      <span key={idx} className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm border border-green-200">
-                        {ing}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>🤖 ML Algorithm:</strong> K-Means Clustering groups {clusters.reduce((sum, c) => sum + c.count, 0)} ingredients 
-                into {clusters.length} clusters based on nutritional similarity (protein, carbs, fat, calories, fiber).
-              </p>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        {/*     <div>
-                  <strong>Cuisine Classification</strong>
-                  <p className="text-sm text-gray-600">k-NN classifier for cuisine types</p>
-                </div>
-              </li>
-              <li className="flex items-start">
-                <span className="text-2xl mr-3">📊</span>
-                <div>
-                  <strong>Nutrition Predictor</strong>
-                  <p className="text-sm text-gray-600">Predicts nutritional values</p>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
+        {/* Collaborative Filtering Tab */}
+        {activeTab === 'collaborative' && (
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                👥 Get Personalized Recommendations
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Select a user profile to get recipe recommendations based on similar users' preferences
+              </p>
+              
+              <div className="flex items-center space-x-4 mb-6">
+                <label className="text-gray-700 font-semibold">Select User:</label>
+                <select
+                  value={selectedUser}
+                  onChange={(e) => setSelectedUser(Number(e.target.value))}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value={0}>User 1 - Likes healthy food</option>
+                  <option value={1}>User 2 - Likes Italian cuisine</option>
+                  <option value={2}>User 3 - Prefers light meals</option>
+                  <option value={3}>User 4 - Loves spicy food</option>
+                  <option value={4}>User 5 - Enjoys complex dishes</option>
+                  <option value={5}>User 6 - Quick & healthy</option>
+                  <option value={6}>User 7 - Mexican/Asian fan</option>
+                  <option value={7}>User 8 - Italian/French lover</option>
+                  <option value={8}>User 9 - Salad enthusiast</option>
+                  <option value={9}>User 10 - Spicy food lover</option>
+                </select>
+                <button
+                  onClick={getCollaborativeRecommendations}
+                  disabled={loading}
+                  className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
+                >
+                  {loading ? 'Loading...' : 'Get Recommendations'}
+                </button>
+              </div>
 
-        {/* Sample Recipes */}
-        <div className="mt-12 max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold mb-6 text-gray-800">Sample Recipes</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {recipes.map(recipe => (
-              <div key={recipe.id} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition duration-300">
-                <h3 className="text-xl font-bold mb-2">{recipe.name}</h3>
-                <p className="text-gray-600 mb-3">
-                  <span className="font-semibold">Cuisine:</span> {recipe.cuisine}
-                </p>
-                <p className="text-gray-600 mb-3">
-                  <span className="font-semibold">Difficulty:</span> {recipe.difficulty}
-                </p>
-                <div>
-                  <span className="font-semibold text-gray-700">Ingredients:</span>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {recipe.ingredients.map((ing, idx) => (
-                      <span key={idx} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                        {ing}
-                      </span>
+              {/* Recommendations Display */}
+              {userRecommendations.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">
+                    🎯 Recommended Recipes for You
+                  </h3>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {userRecommendations.map((recipe, idx) => (
+                      <div key={idx} className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-6 shadow-md">
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className="text-lg font-bold text-gray-800">{recipe.name}</h4>
+                          <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                            {recipe.cuisine}
+                          </span>
+                        </div>
+                        <div className="mb-3">
+                          <span className="text-sm text-gray-600">Predicted Rating: </span>
+                          <span className="font-bold text-purple-700">{recipe.predicted_rating} ⭐</span>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          <strong>Ingredients:</strong>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {recipe.ingredients.map((ing, i) => (
+                              <span key={i} className="bg-white px-2 py-1 rounded text-xs">
+                                {ing}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mt-3 text-xs text-gray-500">
+                          Prep: {recipe.features[0]}min • Difficulty: {recipe.features[1]}/5 • Spice: {recipe.features[2]}/5
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Content-Based Filtering Tab */}
+        {activeTab === 'content-based' && (
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                🔍 Find Similar Recipes
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Click on any recipe to find similar dishes based on ingredients and features
+              </p>
+
+              {/* Recipe Grid */}
+              <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+                {recipes.map((recipe) => (
+                  <button
+                    key={recipe.id}
+                    onClick={() => getContentBasedRecommendations(recipe.id)}
+                    className={`text-left p-4 rounded-lg border-2 transition ${
+                      selectedRecipe === recipe.id
+                        ? 'border-pink-500 bg-pink-50 shadow-md'
+                        : 'border-gray-200 bg-white hover:border-pink-300 hover:shadow-md'
+                    }`}
+                  >
+                    <h4 className="font-bold text-gray-800 mb-1">{recipe.name}</h4>
+                    <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded">
+                      {recipe.cuisine}
+                    </span>
+                  </button>
+                ))}
               </div>
-            ))}
+
+              {/* Similar Recipes Display */}
+              {similarRecipes.length > 0 && (
+                <div className="mt-8 pt-8 border-t border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">
+                    ✨ Similar Recipes
+                  </h3>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {similarRecipes.map((recipe, idx) => (
+                      <div key={idx} className="bg-gradient-to-br from-pink-100 to-orange-100 rounded-lg p-6 shadow-md">
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className="text-lg font-bold text-gray-800">{recipe.name}</h4>
+                          <span className="bg-pink-600 text-white text-xs px-2 py-1 rounded-full">
+                            {recipe.cuisine}
+                          </span>
+                        </div>
+                        <div className="mb-3">
+                          <span className="text-sm text-gray-600">Similarity Score: </span>
+                          <span className="font-bold text-pink-700">{(recipe.similarity_score * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          <strong>Ingredients:</strong>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {recipe.ingredients.map((ing, i) => (
+                              <span key={i} className="bg-white px-2 py-1 rounded text-xs">
+                                {ing}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mt-3 text-xs text-gray-500">
+                          Prep: {recipe.features[0]}min • Difficulty: {recipe.features[1]}/5 • Spice: {recipe.features[2]}/5
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Footer Info */}
+        <div className="max-w-6xl mx-auto mt-12 text-center text-gray-600">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-3">🤖 ML Algorithms Used</h3>
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
+              <div className="bg-blue-50 p-4 rounded">
+                <strong className="text-blue-700">K-Means Clustering</strong>
+                <p className="mt-2 text-gray-600">
+                  Groups ingredients into 6 clusters based on nutritional similarity
+                </p>
+              </div>
+              <div className="bg-purple-50 p-4 rounded">
+                <strong className="text-purple-700">Collaborative Filtering</strong>
+                <p className="mt-2 text-gray-600">
+                  Recommends recipes based on similar users' ratings using cosine similarity
+                </p>
+              </div>
+              <div className="bg-pink-50 p-4 rounded">
+                <strong className="text-pink-700">Content-Based Filtering</strong>
+                <p className="mt-2 text-gray-600">
+                  Finds similar recipes by analyzing features like prep time, difficulty, and spice level
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
