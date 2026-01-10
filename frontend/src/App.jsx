@@ -9,6 +9,15 @@ function App() {
   const [clusters, setClusters] = useState([])
   const [showClusters, setShowClusters] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [predictionResult, setPredictionResult] = useState(null)
+  const [newIngredient, setNewIngredient] = useState({
+    name: '',
+    protein: '',
+    carbs: '',
+    fat: '',
+    calories: '',
+    fiber: ''
+  })
 
   useEffect(() => {
     // Check API health
@@ -44,6 +53,43 @@ function App() {
         console.error('Error loading clusters:', err)
         setLoading(false)
       })
+  }
+
+  const predictIngredientCluster = () => {
+    const features = [
+      parseFloat(newIngredient.protein),
+      parseFloat(newIngredient.carbs),
+      parseFloat(newIngredient.fat),
+      parseFloat(newIngredient.calories),
+      parseFloat(newIngredient.fiber)
+    ]
+    
+    if (features.some(isNaN)) {
+      alert('Please fill in all nutritional values with numbers')
+      return
+    }
+
+    setLoading(true)
+    axios.post('/api/cluster/predict', {
+      name: newIngredient.name || 'Unknown Ingredient',
+      features: features
+    })
+      .then(res => {
+        setPredictionResult(res.data)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Error predicting cluster:', err)
+        alert('Error predicting cluster')
+        setLoading(false)
+      })
+  }
+
+  const handleIngredientChange = (field, value) => {
+    setNewIngredient(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
 
   return (
@@ -101,6 +147,80 @@ function App() {
               >
                 {loading ? 'Loading...' : 'View Ingredient Clusters'}
               </button>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">🎯 Predict Ingredient Cluster</h3>
+              <p className="text-sm text-gray-600 mb-3">Enter nutritional data to find which cluster it belongs to</p>
+              
+              <input
+                type="text"
+                placeholder="Ingredient name"
+                value={newIngredient.name}
+                onChange={(e) => handleIngredientChange('name', e.target.value)}
+                className="w-full border-2 border-gray-300 rounded-lg p-2 mb-2 focus:outline-none focus:border-secondary text-sm"
+              />
+              
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <input
+                  type="number"
+                  placeholder="Protein (g)"
+                  value={newIngredient.protein}
+                  onChange={(e) => handleIngredientChange('protein', e.target.value)}
+                  className="border-2 border-gray-300 rounded-lg p-2 focus:outline-none focus:border-secondary text-sm"
+                />
+                <input
+                  type="number"
+                  placeholder="Carbs (g)"
+                  value={newIngredient.carbs}
+                  onChange={(e) => handleIngredientChange('carbs', e.target.value)}
+                  className="border-2 border-gray-300 rounded-lg p-2 focus:outline-none focus:border-secondary text-sm"
+                />
+                <input
+                  type="number"
+                  placeholder="Fat (g)"
+                  value={newIngredient.fat}
+                  onChange={(e) => handleIngredientChange('fat', e.target.value)}
+                  className="border-2 border-gray-300 rounded-lg p-2 focus:outline-none focus:border-secondary text-sm"
+                />
+                <input
+                  type="number"
+                  placeholder="Calories"
+                  value={newIngredient.calories}
+                  onChange={(e) => handleIngredientChange('calories', e.target.value)}
+                  className="border-2 border-gray-300 rounded-lg p-2 focus:outline-none focus:border-secondary text-sm"
+                />
+              </div>
+              
+              <input
+                type="number"
+                placeholder="Fiber (g)"
+                value={newIngredient.fiber}
+                onChange={(e) => handleIngredientChange('fiber', e.target.value)}
+                className="w-full border-2 border-gray-300 rounded-lg p-2 mb-3 focus:outline-none focus:border-secondary text-sm"
+              />
+              
+              <button
+                onClick={predictIngredientCluster}
+                disabled={loading}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 disabled:opacity-50"
+              >
+                {loading ? 'Predicting...' : 'Predict Cluster'}
+              </button>
+
+              {predictionResult && (
+                <div className="mt-4 p-4 bg-purple-50 border-2 border-purple-300 rounded-lg">
+                  <p className="font-bold text-purple-900 mb-2">
+                    🎯 {predictionResult.ingredient}
+                  </p>
+                  <p className="text-sm text-purple-800">
+                    <strong>Belongs to:</strong> {predictionResult.cluster_name}
+                  </p>
+                  <p className="text-xs text-purple-700 mt-2">
+                    <strong>Similar to:</strong> {predictionResult.similar_ingredients.slice(0, 5).join(', ')}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
