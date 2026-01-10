@@ -54,14 +54,6 @@ pip install -r requirements.txt
 python app.py
 ```
 
-## 🎓 Interview Demo Tips
-
-1. Run both frontend (http://localhost:5173) and backend (http://localhost:5000)
-2. Show live ML predictions in browser
-3. Explain algorithms while demonstrating features
-4. Use Git log to show development branches
-5. Open DevTools to show API requests
-
 ## 📝 ML Techniques Used
 
 - **Collaborative Filtering**: User-based recommendations
@@ -69,6 +61,3 @@ python app.py
 - **k-NN**: Cuisine classification
 - **Content-Based Filtering**: Recipe similarity
 - **k-Means**: Ingredient clustering
-
----
-*Built for co-op interview demonstration*
