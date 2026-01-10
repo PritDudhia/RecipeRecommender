@@ -4,7 +4,7 @@
 K-Means machine learning algorithm that groups ingredients into 6 clusters based on nutritional similarity.
 
 ## 📊 Visual Flow Diagram
-👉 **[View Interactive Flow Diagram](./feature1-flow-diagram.html)** - Open this in your browser to see the complete feature flow!
+👉 **[View Flow Diagram](./FEATURE1-VISUAL-FLOW.md)** - See complete visual documentation with Mermaid diagrams!
 
 ## Quick Summary
 
