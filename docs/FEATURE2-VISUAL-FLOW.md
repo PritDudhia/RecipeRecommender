@@ -63,7 +63,9 @@ graph LR
 
 **Formula:**
 
-$$\text{predicted rating} = \frac{\sum_{u \in \text{similar users}} (rating_u \times similarity_u)}{\sum_{u \in \text{similar users}} similarity_u}$$
+$$\text{predicted rating} = \frac{\sum_{u} (r_u \times s_u)}{\sum_{u} s_u}$$
+
+Where: $r_u$ = user rating, $s_u$ = user similarity
 
 ---
 
