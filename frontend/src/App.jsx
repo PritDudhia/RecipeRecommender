@@ -72,6 +72,20 @@ function App() {
             </h2>
             <p className="text-gray-600 mb-4">
               Enter ingredients you have (comma-separated):
+            </p>
+            <textarea
+              className="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:border-primary"
+              rows="4"
+              placeholder="e.g., chicken, tomatoes, pasta, garlic"
+              value={ingredients}
+              onChange={(e) => setIngredients(e.target.value)}
+            />
+            <button
+              onClick={handleRecommend}
+              className="w-full bg-primary hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
+            >
+              Get Recommendations
+            </button>
             
             <div className="mt-6 pt-6 border-t border-gray-200">
               <h3 className="text-lg font-bold mb-3 text-gray-800">
@@ -88,20 +102,6 @@ function App() {
                 {loading ? 'Loading...' : 'View Ingredient Clusters'}
               </button>
             </div>
-            </p>
-            <textarea
-              className="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:border-primary"
-              rows="4"
-              placeholder="e.g., chicken, tomatoes, pasta, garlic"
-              value={ingredients}
-              onChange={(e) => setIngredients(e.target.value)}
-            />
-            <button
-              onClick={handleRecommend}
-              className="w-full bg-primary hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
-            >
-              Get Recommendations
-            </button>
           </div>
 
           {/* Features Section */}
@@ -133,7 +133,23 @@ function App() {
               </li>
               <li className="flex items-start">
                 <span className="text-2xl mr-3">🌍</span>
-            Ingredient Clusters Display */}
+                <div>
+                  <strong>Cuisine Classification</strong>
+                  <p className="text-sm text-gray-600">k-NN classifier for cuisine types</p>
+                </div>
+              </li>
+              <li className="flex items-start">
+                <span className="text-2xl mr-3">📊</span>
+                <div>
+                  <strong>Nutrition Predictor</strong>
+                  <p className="text-sm text-gray-600">Predicts nutritional values</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Ingredient Clusters Display */}
         {showClusters && clusters.length > 0 && (
           <div className="mt-12 max-w-6xl mx-auto">
             <div className="flex justify-between items-center mb-6">
@@ -176,22 +192,6 @@ function App() {
             </div>
           </div>
         )}
-
-        {/*     <div>
-                  <strong>Cuisine Classification</strong>
-                  <p className="text-sm text-gray-600">k-NN classifier for cuisine types</p>
-                </div>
-              </li>
-              <li className="flex items-start">
-                <span className="text-2xl mr-3">📊</span>
-                <div>
-                  <strong>Nutrition Predictor</strong>
-                  <p className="text-sm text-gray-600">Predicts nutritional values</p>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
 
         {/* Sample Recipes */}
         <div className="mt-12 max-w-6xl mx-auto">
