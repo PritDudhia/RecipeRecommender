@@ -3,7 +3,7 @@
 ## 🎯 System Overview
 
 This feature implements **two recommendation algorithms**:
-1. **Collaborative Filtering**: Recommends recipes based on similar users' preferences
+1. **Collaborative Filtering**: Recommends recipes based on similar users' preferences  
 2. **Content-Based Filtering**: Finds similar recipes based on features
 
 ---
