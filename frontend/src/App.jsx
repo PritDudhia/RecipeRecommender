@@ -6,6 +6,9 @@ function App() {
   const [apiStatus, setApiStatus] = useState('checking...')
   const [recipes, setRecipes] = useState([])
   const [ingredients, setIngredients] = useState('')
+  const [clusters, setClusters] = useState([])
+  const [showClusters, setShowClusters] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     // Check API health
@@ -27,6 +30,20 @@ function App() {
         alert('Check console for recommendations (ML logic to be implemented)')
       })
       .catch(err => console.error('Error:', err))
+  }
+
+  const loadIngredientClusters = () => {
+    setLoading(true)
+    axios.get('/api/cluster/ingredients')
+      .then(res => {
+        setClusters(res.data.clusters)
+        setShowClusters(true)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Error loading clusters:', err)
+        setLoading(false)
+      })
   }
 
   return (
@@ -55,6 +72,22 @@ function App() {
             </h2>
             <p className="text-gray-600 mb-4">
               Enter ingredients you have (comma-separated):
+            
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">
+                🔍 Ingredient Clustering (K-Means)
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Discover how ingredients are grouped by nutritional similarity
+              </p>
+              <button
+                onClick={loadIngredientClusters}
+                disabled={loading}
+                className="w-full bg-secondary hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 disabled:opacity-50"
+              >
+                {loading ? 'Loading...' : 'View Ingredient Clusters'}
+              </button>
+            </div>
             </p>
             <textarea
               className="w-full border-2 border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:border-primary"
@@ -100,7 +133,51 @@ function App() {
               </li>
               <li className="flex items-start">
                 <span className="text-2xl mr-3">🌍</span>
-                <div>
+            Ingredient Clusters Display */}
+        {showClusters && clusters.length > 0 && (
+          <div className="mt-12 max-w-6xl mx-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold text-gray-800">
+                Ingredient Clusters (K-Means ML)
+              </h2>
+              <button
+                onClick={() => setShowClusters(false)}
+                className="text-gray-600 hover:text-gray-800 font-semibold"
+              >
+                Hide ✕
+              </button>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {clusters.map(cluster => (
+                <div key={cluster.cluster_id} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-gray-800">
+                      {cluster.cluster_name}
+                    </h3>
+                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                      {cluster.count} items
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {cluster.ingredients.map((ing, idx) => (
+                      <span key={idx} className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm border border-green-200">
+                        {ing}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>🤖 ML Algorithm:</strong> K-Means Clustering groups {clusters.reduce((sum, c) => sum + c.count, 0)} ingredients 
+                into {clusters.length} clusters based on nutritional similarity (protein, carbs, fat, calories, fiber).
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/*     <div>
                   <strong>Cuisine Classification</strong>
                   <p className="text-sm text-gray-600">k-NN classifier for cuisine types</p>
                 </div>
