@@ -134,8 +134,8 @@ sequenceDiagram
 ```mermaid
 graph TB
     subgraph User-Item Matrix
-        A[10 Users × 15 Recipes]
-        A --> B[Ratings: 0-5<br/>0 = not rated]
+        A[10 Users x 15 Recipes]
+        A --> B[Ratings: 0-5, 0 = not rated]
     end
     
     subgraph Recipe Features
