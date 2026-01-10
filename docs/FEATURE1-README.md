@@ -104,20 +104,6 @@ Predicts cluster for new ingredient based on nutritional features.
 3. Click "Predict Cluster"
 4. See result: "Belongs to: Protein-Rich Foods"
 
-## Interview Talking Points
-
-**"What did you build?"**
-> "I built an ingredient clustering feature using K-Means unsupervised learning to automatically group 28 ingredients into 6 nutritional categories. The model analyzes 5 features and uses StandardScaler for normalization."
-
-**"How does it work?"**
-> "The K-Means algorithm calculates cluster centroids based on ingredient similarity in 5-dimensional feature space. When users input a new ingredient, the model predicts which cluster it belongs to by finding the nearest centroid."
-
-**"What's the business value?"**
-> "This helps users discover ingredient substitutions and understand nutritional relationships. For example, if a recipe calls for chicken but you have tofu, the system shows they're in the same protein cluster, making it a viable substitute."
-
-**"What did you learn?"**
-> "I learned about feature engineering (choosing relevant nutritional metrics), hyperparameter tuning (selecting k=6 clusters), and deploying ML models in production with proper API design."
-
 ## File Structure
 ```
 backend/
