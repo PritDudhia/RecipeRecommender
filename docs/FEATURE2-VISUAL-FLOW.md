@@ -14,10 +14,10 @@ This feature implements **two recommendation algorithms**:
 graph TB
     Start([User Opens App]) --> TabSelect{Select Algorithm}
     
-    TabSelect -->|Collaborative| UserSelect[Select User Profile<br/>10 profiles available]
+    TabSelect -->|Collaborative| UserSelect[Select User Profile - 10 profiles available]
     TabSelect -->|Content-Based| RecipeSelect[Browse 15 Recipes]
     
-    UserSelect --> GetRecs[Click 'Get Recommendations']
+    UserSelect --> GetRecs[Click Get Recommendations]
     GetRecs --> API1[GET /api/recommend/user/:id]
     API1 --> ColabAlgo[Collaborative Filtering Algorithm]
     
@@ -25,8 +25,8 @@ graph TB
     ClickRecipe --> API2[GET /api/recommend/similar/:id]
     API2 --> ContentAlgo[Content-Based Filtering Algorithm]
     
-    ColabAlgo --> Result1[Display Predicted Ratings<br/>5 personalized recipes]
-    ContentAlgo --> Result2[Display Similarity Scores<br/>5 similar recipes]
+    ColabAlgo --> Result1[Display Predicted Ratings - 5 personalized recipes]
+    ContentAlgo --> Result2[Display Similarity Scores - 5 similar recipes]
     
     Result1 --> End([User Views Recommendations])
     Result2 --> End
@@ -45,13 +45,13 @@ graph TB
 
 ```mermaid
 graph LR
-    A[User ID<br/>user_id: 0-9] --> B[Load User Ratings<br/>user_item_matrix row]
-    B --> C[Calculate User Similarity<br/>cosine_similarity]
+    A[User ID: 0-9] --> B[Load User Ratings]
+    B --> C[Calculate User Similarity]
     C --> D[For each unrated recipe]
-    D --> E{Other users<br/>rated it?}
-    E -->|Yes| F[Weighted Rating<br/>rating × similarity]
+    D --> E{Other users rated it?}
+    E -->|Yes| F[Weighted Rating]
     E -->|No| G[Skip recipe]
-    F --> H[Sum weighted ratings<br/>÷ total similarity]
+    F --> H[Sum weighted ratings]
     H --> I[Predicted Rating]
     I --> J[Sort by rating DESC]
     J --> K[Return Top 5]
@@ -70,9 +70,9 @@ $$\text{predicted\_rating} = \frac{\sum_{u \in similar\_users} (rating_u \times 
 
 ```mermaid
 graph LR
-    A[Recipe ID<br/>recipe_id: 1-15] --> B[Extract Features<br/>5-dimensional vector]
-    B --> C[Feature Vector<br/>[prep, diff, spice, sweet, health]]
-    C --> D[Calculate Similarity Matrix<br/>cosine_similarity]
+    A[Recipe ID: 1-15] --> B[Extract Features]
+    B --> C[Feature Vector: 5D]
+    C --> D[Calculate Similarity Matrix]
     D --> E[Get row for target recipe]
     E --> F[Sort similarities DESC]
     F --> G[Exclude target recipe]
@@ -140,12 +140,12 @@ graph TB
     
     subgraph Recipe Features
         C[15 Recipes]
-        C --> D[5 Features per recipe<br/>[prep, diff, spice, sweet, health]]
+        C --> D[5 Features per recipe]
     end
     
     subgraph Similarity Matrices
-        E[User Similarity<br/>10×10 matrix]
-        F[Recipe Similarity<br/>15×15 matrix]
+        E[User Similarity 10x10 matrix]
+        F[Recipe Similarity 15x15 matrix]
     end
     
     A --> E
@@ -163,20 +163,20 @@ graph TB
 
 ```mermaid
 graph TD
-    App[App Component] --> Header[Header<br/>Title + API Status]
-    App --> TabNav[Tab Navigation<br/>Collaborative / Content-Based]
+    App[App Component] --> Header[Header - Title and API Status]
+    App --> TabNav[Tab Navigation - Collaborative and Content-Based]
     
     TabNav --> Tab1{Collaborative Tab}
     TabNav --> Tab2{Content-Based Tab}
     
-    Tab1 --> UserDropdown[User Dropdown<br/>10 profiles]
+    Tab1 --> UserDropdown[User Dropdown - 10 profiles]
     UserDropdown --> GetButton[Get Recommendations Button]
-    GetButton --> UserResults[Recommendation Cards<br/>predicted_rating displayed]
+    GetButton --> UserResults[Recommendation Cards - predicted ratings]
     
-    Tab2 --> RecipeGrid[Recipe Grid<br/>15 clickable cards]
-    RecipeGrid --> SimilarResults[Similar Recipe Cards<br/>similarity_score displayed]
+    Tab2 --> RecipeGrid[Recipe Grid - 15 clickable cards]
+    RecipeGrid --> SimilarResults[Similar Recipe Cards - similarity scores]
     
-    App --> Footer[ML Info Footer<br/>Algorithm descriptions]
+    App --> Footer[ML Info Footer - Algorithm descriptions]
     
     style App fill:#fff9c4
     style Tab1 fill:#e1d5f0
@@ -194,9 +194,9 @@ graph TD
 graph LR
     A[Select User 1] --> B[Likes healthy food]
     B --> C[Get Recommendations]
-    C --> D[Quinoa Bowl<br/>Rating: 4.8]
-    C --> E[Grilled Salmon<br/>Rating: 4.5]
-    C --> F[Greek Salad<br/>Rating: 4.2]
+    C --> D[Quinoa Bowl - Rating 4.8]
+    C --> E[Grilled Salmon - Rating 4.5]
+    C --> F[Greek Salad - Rating 4.2]
     
     style D fill:#c8e6c9
     style E fill:#c8e6c9
@@ -206,11 +206,11 @@ graph LR
 ### Scenario 2: Find Similar to Chicken Stir Fry
 ```mermaid
 graph LR
-    A[Click Chicken Stir Fry] --> B[Asian, 20min, Spice:3]
+    A[Click Chicken Stir Fry] --> B[Asian 20min Spice:3]
     B --> C[Find Similar]
-    C --> D[Vegetable Stir Fry<br/>89% match]
-    C --> E[Pad Thai<br/>78% match]
-    C --> F[Beef Tacos<br/>65% match]
+    C --> D[Vegetable Stir Fry - 89% match]
+    C --> E[Pad Thai - 78% match]
+    C --> F[Beef Tacos - 65% match]
     
     style D fill:#ffccbc
     style E fill:#ffccbc
