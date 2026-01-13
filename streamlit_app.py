@@ -493,17 +493,20 @@ elif feature == "🥗 Nutrition Prediction":
             if 'recipe_nutr' in st.session_state:
                 result = st.session_state.recipe_nutr
                 
-                st.success(f"**{result['recipe_name']}**")
-                st.write(f"*{result['cuisine']} cuisine*")
-                
-                nutr = result['nutrition']
-                col_a, col_b, col_c, col_d = st.columns(4)
-                col_a.metric("Calories", f"{nutr['calories']:.0f}")
-                col_b.metric("Protein", f"{nutr['protein']:.1f}g")
-                col_c.metric("Carbs", f"{nutr['carbs']:.1f}g")
-                col_d.metric("Fat", f"{nutr['fat']:.1f}g")
-                
-                st.markdown(f"**Ingredients**: {', '.join(result['ingredients'])}")
+                try:
+                    st.success(f"**{result['recipe_name']}**")
+                    st.write(f"*{result['cuisine']} cuisine*")
+                    
+                    nutr = result['nutrition']
+                    col_a, col_b, col_c, col_d = st.columns(4)
+                    col_a.metric("Calories", f"{nutr['calories']:.0f}")
+                    col_b.metric("Protein", f"{nutr['protein']:.1f}g")
+                    col_c.metric("Carbs", f"{nutr['carbs']:.1f}g")
+                    col_d.metric("Fat", f"{nutr['fat']:.1f}g")
+                    
+                    st.markdown(f"**Ingredients**: {', '.join(result['ingredients'])}")
+                except (KeyError, TypeError) as e:
+                    st.error(f"Error displaying results: {str(e)}")
             else:
                 st.info("👆 Select a recipe")
     
