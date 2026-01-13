@@ -376,19 +376,21 @@ elif feature == "🌍 Cuisine Classification":
         if 'cuisine_result' in st.session_state:
             result = st.session_state.cuisine_result
             
-            if result['success']:
+            if result.get('success'):
                 st.success(f"### Predicted Cuisine: {result['predicted_cuisine']}")
                 st.metric("Confidence", f"{result['confidence']:.1%}")
                 
-                st.markdown("**Top Predictions:**")
-                df = pd.DataFrame(result['all_predictions'])
-                st.bar_chart(df.set_index('cuisine')['probability'])
+                if 'all_predictions' in result and result['all_predictions']:
+                    st.markdown("**Top Predictions:**")
+                    df = pd.DataFrame(result['all_predictions'])
+                    st.bar_chart(df.set_index('cuisine')['probability'])
                 
-                st.markdown("**Similar Recipes:**")
-                for recipe in result['similar_recipes'][:3]:
-                    with st.expander(recipe['name']):
-                        st.write(f"**Cuisine**: {recipe['cuisine']}")
-                        st.write(f"**Ingredients**: {', '.join(recipe['ingredients'])}")
+                if 'similar_recipes' in result and result['similar_recipes']:
+                    st.markdown("**Similar Recipes:**")
+                    for recipe in result['similar_recipes'][:3]:
+                        with st.expander(recipe['name']):
+                            st.write(f"**Cuisine**: {recipe['cuisine']}")
+                            st.write(f"**Ingredients**: {', '.join(recipe['ingredients'])}")
             else:
                 st.error(result.get('error', 'Prediction failed'))
         else:
