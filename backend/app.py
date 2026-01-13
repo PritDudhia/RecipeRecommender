@@ -144,16 +144,51 @@ def recommend_similar_recipes(recipe_id):
 
 @app.route('/api/recommend', methods=['POST'])
 def recommend_recipes():
-    """Recommend recipes based on ingredients (legacy endpoint)"""
-    data = request.get_json()
-    ingredients = data.get('ingredients', [])
-    
-    # TODO: Implement ML recommendation logic
-    return jsonify({
-        'message': 'Recommendation endpoint (to be implemented)',
-        'input_ingredients': ingredients,
-        'recommended_recipes': []
-    })
+    """Recommend recipes based on ingredients using content-based filtering"""
+    try:
+        data = request.get_json()
+        ingredients = data.get('ingredients', [])
+        
+        if not ingredients:
+            return jsonify({
+                'success': False,
+                'error': 'No ingredients provided'
+            }), 400
+        
+        # Get all recipes
+        all_recipes = recipe_recommender.get_all_recipes()
+        
+        # Score recipes based on ingredient overlap
+        scored_recipes = []
+        for recipe in all_recipes:
+            recipe_ingredients = set([ing.lower() for ing in recipe.get('ingredients', [])])
+            input_ingredients = set([ing.lower().strip() for ing in ingredients])
+            
+            # Calculate overlap
+            overlap = len(recipe_ingredients.intersection(input_ingredients))
+            if overlap > 0:
+                score = overlap / len(recipe_ingredients)  # Percentage of recipe ingredients matched
+                scored_recipes.append({
+                    'recipe': recipe,
+                    'matched_ingredients': list(recipe_ingredients.intersection(input_ingredients)),
+                    'overlap_score': round(score, 3),
+                    'total_ingredients': len(recipe_ingredients)
+                })
+        
+        # Sort by overlap score
+        scored_recipes.sort(key=lambda x: x['overlap_score'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'input_ingredients': ingredients,
+            'recommended_recipes': scored_recipes[:10],  # Top 10
+            'total_matches': len(scored_recipes)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/cluster/ingredients', methods=['GET'])
 def cluster_ingredients():
