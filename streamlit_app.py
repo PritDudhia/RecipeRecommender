@@ -471,13 +471,20 @@ elif feature == "🥗 Nutrition Prediction":
         
         with col1:
             recipes = models['recommender'].get_all_recipes()
-            recipe_options = {f"{r['name']} ({r['cuisine']})": r['id'] for r in recipes}
+            recipe_options = {f"{r['name']} ({r['cuisine']})": r for r in recipes}
             selected = st.selectbox("Select recipe", list(recipe_options.keys()), key="recipe_nutr")
             
             if st.button("Get Nutrition", type="primary", key="get_recipe_nutr"):
-                recipe_id = recipe_options[selected]
+                recipe = recipe_options[selected]
                 try:
-                    result = models['nutrition'].predict_recipe(recipe_id=recipe_id)
+                    # Predict nutrition from ingredients
+                    nutrition = models['nutrition'].predict(recipe['ingredients'])
+                    result = {
+                        'recipe_name': recipe['name'],
+                        'cuisine': recipe['cuisine'],
+                        'ingredients': recipe['ingredients'],
+                        'nutrition': nutrition
+                    }
                     st.session_state.recipe_nutr = result
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
@@ -486,20 +493,17 @@ elif feature == "🥗 Nutrition Prediction":
             if 'recipe_nutr' in st.session_state:
                 result = st.session_state.recipe_nutr
                 
-                if isinstance(result, dict) and 'recipe_name' in result:
-                    st.success(f"**{result['recipe_name']}**")
-                    st.write(f"*{result['cuisine']} cuisine*")
-                    
-                    nutr = result['nutrition']
-                    col_a, col_b, col_c, col_d = st.columns(4)
-                    col_a.metric("Calories", f"{nutr['calories']:.0f}")
-                    col_b.metric("Protein", f"{nutr['protein']:.1f}g")
-                    col_c.metric("Carbs", f"{nutr['carbs']:.1f}g")
-                    col_d.metric("Fat", f"{nutr['fat']:.1f}g")
-                    
-                    st.markdown(f"**Ingredients**: {', '.join(result['ingredients'])}")
-                else:
-                    st.error("Invalid result format")
+                st.success(f"**{result['recipe_name']}**")
+                st.write(f"*{result['cuisine']} cuisine*")
+                
+                nutr = result['nutrition']
+                col_a, col_b, col_c, col_d = st.columns(4)
+                col_a.metric("Calories", f"{nutr['calories']:.0f}")
+                col_b.metric("Protein", f"{nutr['protein']:.1f}g")
+                col_c.metric("Carbs", f"{nutr['carbs']:.1f}g")
+                col_d.metric("Fat", f"{nutr['fat']:.1f}g")
+                
+                st.markdown(f"**Ingredients**: {', '.join(result['ingredients'])}")
             else:
                 st.info("👆 Select a recipe")
     
