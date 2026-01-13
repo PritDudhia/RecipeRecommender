@@ -427,7 +427,7 @@ elif feature == "🥗 Nutrition Prediction":
                 "Ingredients (comma-separated)",
                 placeholder="chicken, rice, broccoli, olive oil",
                 height=150,
-                key="nutr_ingr"
+                key="nutr_ingr_input"
             )
             
             if st.button("Predict Nutrition", type="primary"):
