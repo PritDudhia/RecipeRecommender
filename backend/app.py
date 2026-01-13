@@ -5,6 +5,7 @@ from models.ingredient_clustering import get_trained_model
 from models.recipe_recommender import RecipeRecommender
 from models.ingredient_substitution import IngredientSubstitutionFinder
 from models.cuisine_classifier import CuisineClassifier
+from models.nutrition_predictor import NutritionPredictor
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
@@ -18,10 +19,11 @@ ingredient_clusterer = None
 recipe_recommender = None
 substitution_finder = None
 cuisine_classifier = None
+nutrition_predictor = None
 
 def init_models():
     """Initialize all ML models"""
-    global ingredient_clusterer, recipe_recommender, substitution_finder, cuisine_classifier
+    global ingredient_clusterer, recipe_recommender, substitution_finder, cuisine_classifier, nutrition_predictor
     
     print("\n🤖 Initializing ML Models...")
     
@@ -43,6 +45,11 @@ def init_models():
     cuisine_classifier = CuisineClassifier(n_neighbors=5)
     cuisine_classifier.train()
     print("✅ Cuisine classifier ready!")
+    
+    # Initialize Nutrition Predictor
+    nutrition_predictor = NutritionPredictor(use_ridge=True, alpha=1.0)
+    nutrition_predictor.train()
+    print("✅ Nutrition predictor ready!")
     
     print("\n✨ All models initialized successfully!\n")
 
@@ -305,6 +312,100 @@ def get_cuisines():
             'success': True,
             'cuisines': cuisines,
             'total': len(cuisines)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ===== FEATURE #5: NUTRITION PREDICTION ENDPOINTS =====
+
+@app.route('/api/nutrition/predict', methods=['POST'])
+def predict_nutrition():
+    """Predict nutritional information from ingredients using regression"""
+    try:
+        data = request.get_json()
+        ingredients = data.get('ingredients', [])
+        
+        if not ingredients:
+            return jsonify({
+                'success': False,
+                'error': 'No ingredients provided'
+            }), 400
+        
+        predictions = nutrition_predictor.predict(ingredients)
+        
+        return jsonify({
+            'success': True,
+            'ingredients': ingredients,
+            'nutrition': predictions,
+            'model': 'Ridge Regression' if nutrition_predictor.use_ridge else 'Linear Regression'
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/nutrition/recipe/<int:recipe_id>', methods=['GET'])
+def get_recipe_nutrition(recipe_id):
+    """Get predicted nutrition for a specific recipe"""
+    try:
+        result = nutrition_predictor.predict_recipe(recipe_id=recipe_id)
+        return jsonify({
+            'success': True,
+            **result
+        })
+    
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 404
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/nutrition/compare', methods=['POST'])
+def compare_recipe_nutrition():
+    """Compare nutritional values of multiple recipes"""
+    try:
+        data = request.get_json()
+        recipe_ids = data.get('recipe_ids', [])
+        
+        if not recipe_ids:
+            return jsonify({
+                'success': False,
+                'error': 'No recipe IDs provided'
+            }), 400
+        
+        results = nutrition_predictor.compare_recipes(recipe_ids)
+        
+        return jsonify({
+            'success': True,
+            'recipes': results,
+            'total': len(results)
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/nutrition/metrics', methods=['GET'])
+def get_nutrition_metrics():
+    """Get model performance metrics"""
+    try:
+        metrics = nutrition_predictor.get_metrics()
+        return jsonify({
+            'success': True,
+            'metrics': metrics,
+            'model_type': 'Ridge Regression' if nutrition_predictor.use_ridge else 'Linear Regression'
         })
     except Exception as e:
         return jsonify({

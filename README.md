@@ -12,7 +12,7 @@ This web application helps users discover recipes based on available ingredients
 - **Recipe Recommendation** (`feature/recipe-recommendation`) - Collaborative filtering for personalized suggestions
 - **Substitution Finder** (`feature/substitution-finder`) - Association rules (Apriori) for ingredient swaps
 - **Cuisine Classification** (`feature/cuisine-classification`) - k-NN classifier for cuisine types
-- **Nutrition Predictor** (`feature/nutrition-predictor`) - Predicts nutritional values
+- **Nutrition Predictor** (`feature/nutrition-predictor`) - Ridge regression for nutritional value prediction ⭐ NEW!
 
 ## 🛠️ Tech Stack
 

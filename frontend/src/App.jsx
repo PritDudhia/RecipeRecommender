@@ -13,7 +13,7 @@ function App() {
   const [selectedRecipe, setSelectedRecipe] = useState(null)
   const [similarRecipes, setSimilarRecipes] = useState([])
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('substitution') // 'collaborative', 'content-based', 'clustering', or 'substitution'
+  const [activeTab, setActiveTab] = useState('nutrition') // 'collaborative', 'content-based', 'clustering', 'substitution', or 'nutrition'
   const [clusters, setClusters] = useState([])
   const [showClusters, setShowClusters] = useState(false)
   const [predictionResult, setPredictionResult] = useState(null)
@@ -35,6 +35,13 @@ function App() {
   const [cuisineIngredients, setCuisineIngredients] = useState('')
   const [cuisineResult, setCuisineResult] = useState(null)
   const [cuisineLoading, setCuisineLoading] = useState(false)
+  
+  // Nutrition Prediction states
+  const [nutritionIngredients, setNutritionIngredients] = useState('')
+  const [nutritionResult, setNutritionResult] = useState(null)
+  const [nutritionLoading, setNutritionLoading] = useState(false)
+  const [compareRecipeIds, setCompareRecipeIds] = useState('')
+  const [comparisonResults, setComparisonResults] = useState(null)
 
   useEffect(() => {
     // Check API health
@@ -204,6 +211,62 @@ function App() {
       })
   }
 
+  const predictNutrition = () => {
+    const ingredientList = nutritionIngredients.split(',').map(i => i.trim()).filter(i => i)
+    
+    if (ingredientList.length === 0) {
+      alert('Please enter some ingredients')
+      return
+    }
+    
+    setNutritionLoading(true)
+    axios.post('/api/nutrition/predict', { ingredients: ingredientList })
+      .then(res => {
+        setNutritionResult(res.data)
+        setNutritionLoading(false)
+      })
+      .catch(err => {
+        console.error('Error:', err)
+        alert('Error predicting nutrition')
+        setNutritionLoading(false)
+      })
+  }
+
+  const compareRecipes = () => {
+    const ids = compareRecipeIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+    
+    if (ids.length === 0) {
+      alert('Please enter recipe IDs (e.g., 1, 6, 11)')
+      return
+    }
+    
+    setNutritionLoading(true)
+    axios.post('/api/nutrition/compare', { recipe_ids: ids })
+      .then(res => {
+        setComparisonResults(res.data)
+        setNutritionLoading(false)
+      })
+      .catch(err => {
+        console.error('Error:', err)
+        alert('Error comparing recipes')
+        setNutritionLoading(false)
+      })
+  }
+
+  const getRecipeNutrition = (recipeId) => {
+    setNutritionLoading(true)
+    axios.get(`/api/nutrition/recipe/${recipeId}`)
+      .then(res => {
+        setNutritionResult(res.data)
+        setNutritionLoading(false)
+      })
+      .catch(err => {
+        console.error('Error:', err)
+        alert('Error getting recipe nutrition')
+        setNutritionLoading(false)
+      })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       <div className="container mx-auto px-4 py-8">
@@ -224,6 +287,16 @@ function App() {
         {/* Tab Navigation */}
         <div className="max-w-6xl mx-auto mb-8">
           <div className="flex justify-center space-x-4 flex-wrap gap-2">
+            <button
+              onClick={() => setActiveTab('nutrition')}
+              className={`px-6 py-3 rounded-lg font-semibold transition ${
+                activeTab === 'nutrition'
+                  ? 'bg-red-600 text-white shadow-lg'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              🍎 Nutrition Predictor
+            </button>
             <button
               onClick={() => setActiveTab('substitution')}
               className={`px-6 py-3 rounded-lg font-semibold transition ${
@@ -276,6 +349,193 @@ function App() {
             </button>
           </div>
         </div>
+
+        {/* Nutrition Predictor Tab */}
+        {activeTab === 'nutrition' && (
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                🍎 Nutrition Predictor
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Predict nutritional values (calories, protein, fat, carbs, fiber) using Ridge Regression based on recipe ingredients.
+              </p>
+
+              {/* Input Section */}
+              <div className="mb-6">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Enter ingredients (comma-separated):
+                </label>
+                <div className="flex gap-4">
+                  <input
+                    type="text"
+                    value={nutritionIngredients}
+                    onChange={(e) => setNutritionIngredients(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && predictNutrition()}
+                    placeholder="e.g., chicken, rice, broccoli, soy sauce"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={predictNutrition}
+                    disabled={nutritionLoading}
+                    className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                  >
+                    {nutritionLoading ? 'Predicting...' : 'Predict Nutrition'}
+                  </button>
+                </div>
+                
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600 mb-2">Or select a recipe from the database:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-lg">
+                    {recipes.slice(0, 40).map(recipe => (
+                      <button
+                        key={recipe.id}
+                        onClick={() => getRecipeNutrition(recipe.id)}
+                        className="text-sm px-3 py-2 bg-white border border-gray-300 rounded hover:bg-red-50 hover:border-red-500 transition text-left"
+                      >
+                        {recipe.id}. {recipe.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Recipe Comparison Section */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h3 className="font-semibold text-gray-700 mb-2">Compare Multiple Recipes:</h3>
+                <div className="flex gap-4">
+                  <input
+                    type="text"
+                    value={compareRecipeIds}
+                    onChange={(e) => setCompareRecipeIds(e.target.value)}
+                    placeholder="Enter recipe IDs (e.g., 1, 6, 11)"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={compareRecipes}
+                    disabled={nutritionLoading}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                  >
+                    Compare
+                  </button>
+                </div>
+              </div>
+
+              {/* Single Recipe Nutrition Results */}
+              {nutritionResult && nutritionResult.success && nutritionResult.nutrition && !comparisonResults && (
+                <div className="mt-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-6">
+                  {nutritionResult.recipe_name && (
+                    <div className="mb-4">
+                      <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                        🍽️ {nutritionResult.recipe_name}
+                      </h3>
+                      <p className="text-gray-600">Cuisine: {nutritionResult.cuisine}</p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {nutritionResult.ingredients && nutritionResult.ingredients.map((ing, idx) => (
+                          <span key={idx} className="bg-white px-3 py-1 rounded-full text-sm border border-gray-300">
+                            {ing}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <h4 className="text-xl font-bold text-gray-800 mb-4">Nutritional Information (per serving)</h4>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="bg-white rounded-lg p-4 text-center shadow">
+                      <div className="text-3xl mb-2">🔥</div>
+                      <div className="text-2xl font-bold text-orange-600">{nutritionResult.nutrition.calories}</div>
+                      <div className="text-sm text-gray-600">Calories</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 text-center shadow">
+                      <div className="text-3xl mb-2">💪</div>
+                      <div className="text-2xl font-bold text-blue-600">{nutritionResult.nutrition.protein}g</div>
+                      <div className="text-sm text-gray-600">Protein</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 text-center shadow">
+                      <div className="text-3xl mb-2">🥑</div>
+                      <div className="text-2xl font-bold text-green-600">{nutritionResult.nutrition.fat}g</div>
+                      <div className="text-sm text-gray-600">Fat</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 text-center shadow">
+                      <div className="text-3xl mb-2">🍞</div>
+                      <div className="text-2xl font-bold text-yellow-600">{nutritionResult.nutrition.carbs}g</div>
+                      <div className="text-sm text-gray-600">Carbs</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 text-center shadow">
+                      <div className="text-3xl mb-2">🌾</div>
+                      <div className="text-2xl font-bold text-purple-600">{nutritionResult.nutrition.fiber}g</div>
+                      <div className="text-sm text-gray-600">Fiber</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-white rounded-lg">
+                    <p className="text-sm text-gray-600">
+                      Model: <span className="font-semibold">{nutritionResult.model || 'Ridge Regression'}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Recipe Comparison Results */}
+              {comparisonResults && comparisonResults.success && comparisonResults.recipes && (
+                <div className="mt-6">
+                  <div className="mb-4 flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-gray-800">
+                      Nutrition Comparison ({comparisonResults.total} recipes)
+                    </h3>
+                    <button
+                      onClick={() => setComparisonResults(null)}
+                      className="text-sm bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {comparisonResults.recipes.map((recipe, idx) => (
+                      <div key={idx} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                        <h4 className="text-lg font-bold text-gray-800 mb-2">
+                          {recipe.recipe_name} <span className="text-sm text-gray-600">({recipe.cuisine})</span>
+                        </h4>
+                        
+                        <div className="grid grid-cols-5 gap-3 mt-3">
+                          <div className="bg-white rounded p-3 text-center">
+                            <div className="text-sm text-gray-600">🔥 Calories</div>
+                            <div className="text-lg font-bold text-orange-600">{recipe.nutrition.calories}</div>
+                          </div>
+                          <div className="bg-white rounded p-3 text-center">
+                            <div className="text-sm text-gray-600">💪 Protein</div>
+                            <div className="text-lg font-bold text-blue-600">{recipe.nutrition.protein}g</div>
+                          </div>
+                          <div className="bg-white rounded p-3 text-center">
+                            <div className="text-sm text-gray-600">🥑 Fat</div>
+                            <div className="text-lg font-bold text-green-600">{recipe.nutrition.fat}g</div>
+                          </div>
+                          <div className="bg-white rounded p-3 text-center">
+                            <div className="text-sm text-gray-600">🍞 Carbs</div>
+                            <div className="text-lg font-bold text-yellow-600">{recipe.nutrition.carbs}g</div>
+                          </div>
+                          <div className="bg-white rounded p-3 text-center">
+                            <div className="text-sm text-gray-600">🌾 Fiber</div>
+                            <div className="text-lg font-bold text-purple-600">{recipe.nutrition.fiber}g</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {nutritionResult && !nutritionResult.success && (
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-700">{nutritionResult.error}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Ingredient Substitution Tab */}
         {activeTab === 'substitution' && (
@@ -846,7 +1106,19 @@ function App() {
         <div className="max-w-6xl mx-auto mt-12 text-center text-gray-600">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-bold text-gray-800 mb-3">🤖 ML Algorithms Used</h3>
-            <div className="grid md:grid-cols-3 gap-4 text-sm">
+            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
+              <div className="bg-red-50 p-4 rounded">
+                <strong className="text-red-700">Ridge Regression</strong>
+                <p className="mt-2 text-gray-600">
+                  Predicts nutritional values from ingredients using regularized linear regression
+                </p>
+              </div>
+              <div className="bg-green-50 p-4 rounded">
+                <strong className="text-green-700">Association Rules</strong>
+                <p className="mt-2 text-gray-600">
+                  Finds ingredient substitutions using co-occurrence patterns and context similarity
+                </p>
+              </div>
               <div className="bg-blue-50 p-4 rounded">
                 <strong className="text-blue-700">K-Means Clustering</strong>
                 <p className="mt-2 text-gray-600">
