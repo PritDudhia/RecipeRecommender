@@ -3,6 +3,8 @@ from flask_cors import CORS
 import os
 from models.ingredient_clustering import get_trained_model
 from models.recipe_recommender import RecipeRecommender
+from models.ingredient_substitution import IngredientSubstitutionFinder
+from models.cuisine_classifier import CuisineClassifier
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
@@ -14,10 +16,12 @@ app.config['JSON_SORT_KEYS'] = False
 # Initialize ML models
 ingredient_clusterer = None
 recipe_recommender = None
+substitution_finder = None
+cuisine_classifier = None
 
 def init_models():
     """Initialize all ML models"""
-    global ingredient_clusterer, recipe_recommender
+    global ingredient_clusterer, recipe_recommender, substitution_finder, cuisine_classifier
     
     print("\n🤖 Initializing ML Models...")
     
@@ -29,6 +33,16 @@ def init_models():
     recipe_recommender = RecipeRecommender()
     recipe_recommender.train()
     print("✅ Recipe recommendation model ready!")
+    
+    # Initialize Ingredient Substitution Finder
+    substitution_finder = IngredientSubstitutionFinder(min_support=0.02, min_confidence=0.15)
+    substitution_finder.train()
+    print("✅ Ingredient substitution finder ready!")
+    
+    # Initialize Cuisine Classifier
+    cuisine_classifier = CuisineClassifier(n_neighbors=5)
+    cuisine_classifier.train()
+    print("✅ Cuisine classifier ready!")
     
     print("\n✨ All models initialized successfully!\n")
 
@@ -207,6 +221,99 @@ def predict_cluster():
             'similar_ingredients': clusters.get(cluster_id, [])
         })
     
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ===== FEATURE #3: INGREDIENT SUBSTITUTION ENDPOINTS =====
+
+@app.route('/api/substitute', methods=['POST'])
+def find_substitutes():
+    """Find ingredient substitutes using association rules"""
+    try:
+        data = request.get_json()
+        ingredient = data.get('ingredient', '').lower().strip()
+        top_n = data.get('top_n', 5)
+        
+        if not ingredient:
+            return jsonify({
+                'success': False,
+                'error': 'No ingredient provided'
+            }), 400
+        
+        result = substitution_finder.get_substitutes(ingredient, top_n=top_n)
+        return jsonify(result)
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/substitute/ingredients', methods=['GET'])
+def get_available_ingredients():
+    """Get list of all ingredients with substitution rules"""
+    try:
+        ingredients = list(substitution_finder.substitution_rules.keys())
+        return jsonify({
+            'success': True,
+            'ingredients': sorted(ingredients),
+            'total': len(ingredients)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ===== FEATURE #4: CUISINE CLASSIFICATION ENDPOINTS =====
+
+@app.route('/api/cuisine/predict', methods=['POST'])
+def predict_cuisine():
+    """Predict cuisine type from ingredients using k-NN"""
+    try:
+        data = request.get_json()
+        ingredients = data.get('ingredients', [])
+        
+        if not ingredients:
+            return jsonify({
+                'success': False,
+                'error': 'No ingredients provided'
+            }), 400
+        
+        result = cuisine_classifier.predict_cuisine(ingredients)
+        return jsonify(result)
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/cuisine/stats', methods=['GET'])
+def get_cuisine_stats():
+    """Get cuisine classification statistics"""
+    try:
+        stats = cuisine_classifier.get_cuisine_stats()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/cuisine/list', methods=['GET'])
+def get_cuisines():
+    """Get list of all available cuisines"""
+    try:
+        cuisines = cuisine_classifier.get_all_cuisines()
+        return jsonify({
+            'success': True,
+            'cuisines': cuisines,
+            'total': len(cuisines)
+        })
     except Exception as e:
         return jsonify({
             'success': False,

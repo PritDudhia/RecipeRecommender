@@ -10,7 +10,7 @@ function App() {
   const [selectedRecipe, setSelectedRecipe] = useState(null)
   const [similarRecipes, setSimilarRecipes] = useState([])
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('collaborative') // 'collaborative', 'content-based', or 'clustering'
+  const [activeTab, setActiveTab] = useState('substitution') // 'collaborative', 'content-based', 'clustering', or 'substitution'
   const [clusters, setClusters] = useState([])
   const [showClusters, setShowClusters] = useState(false)
   const [predictionResult, setPredictionResult] = useState(null)
@@ -22,6 +22,16 @@ function App() {
     calories: '',
     fiber: ''
   })
+  
+  // Substitution feature states
+  const [substitutionInput, setSubstitutionInput] = useState('')
+  const [substitutionResults, setSubstitutionResults] = useState(null)
+  const [availableIngredients, setAvailableIngredients] = useState([])
+  
+  // Cuisine Classification states
+  const [cuisineIngredients, setCuisineIngredients] = useState('')
+  const [cuisineResult, setCuisineResult] = useState(null)
+  const [cuisineLoading, setCuisineLoading] = useState(false)
 
   useEffect(() => {
     // Check API health
@@ -122,6 +132,75 @@ function App() {
     }))
   }
 
+  const findSubstitutes = () => {
+    if (!substitutionInput.trim()) {
+      alert('Please enter an ingredient')
+      return
+    }
+
+    setLoading(true)
+    axios.post('/api/substitute', {
+      ingredient: substitutionInput,
+      top_n: 5
+    })
+      .then(res => {
+        setSubstitutionResults(res.data)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Error finding substitutes:', err)
+        alert('Could not find substitutes for that ingredient')
+        setLoading(false)
+      })
+  }
+
+  const loadAvailableIngredients = () => {
+    axios.get('/api/substitute/ingredients')
+      .then(res => {
+        setAvailableIngredients(res.data.ingredients || [])
+      })
+      .catch(err => console.error('Error loading ingredients:', err))
+  }
+
+  const findSubstitutesFor = (ingredient) => {
+    setSubstitutionInput(ingredient)
+    setLoading(true)
+    axios.post('/api/substitute', {
+      ingredient: ingredient,
+      top_n: 5
+    })
+      .then(res => {
+        setSubstitutionResults(res.data)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Error finding substitutes:', err)
+        alert('Could not find substitutes for that ingredient')
+        setLoading(false)
+      })
+  }
+
+  const predictCuisine = () => {
+    const ingredientList = cuisineIngredients.split(',').map(i => i.trim()).filter(i => i)
+    
+    if (ingredientList.length === 0) {
+      alert('Please enter some ingredients')
+      return
+    }
+    
+    setCuisineLoading(true)
+    axios.post('/api/cuisine/predict', { ingredients: ingredientList })
+      .then(res => {
+        setCuisineResult(res.data)
+        setCuisineLoading(false)
+      })
+      .catch(err => {
+        console.error('Error:', err)
+        alert('Error predicting cuisine')
+        setCuisineLoading(false)
+      })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       <div className="container mx-auto px-4 py-8">
@@ -141,7 +220,17 @@ function App() {
 
         {/* Tab Navigation */}
         <div className="max-w-6xl mx-auto mb-8">
-          <div className="flex justify-center space-x-4">
+          <div className="flex justify-center space-x-4 flex-wrap gap-2">
+            <button
+              onClick={() => setActiveTab('substitution')}
+              className={`px-6 py-3 rounded-lg font-semibold transition ${
+                activeTab === 'substitution'
+                  ? 'bg-green-600 text-white shadow-lg'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              🔄 Ingredient Substitution
+            </button>
             <button
               onClick={() => setActiveTab('clustering')}
               className={`px-6 py-3 rounded-lg font-semibold transition ${
@@ -172,8 +261,190 @@ function App() {
             >
               🔍 Content-Based Filtering
             </button>
+            <button
+              onClick={() => setActiveTab('cuisine')}
+              className={`px-6 py-3 rounded-lg font-semibold transition ${
+                activeTab === 'cuisine'
+                  ? 'bg-orange-600 text-white shadow-lg'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              🌍 Cuisine Classifier
+            </button>
           </div>
         </div>
+
+        {/* Ingredient Substitution Tab */}
+        {activeTab === 'substitution' && (
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                🔄 Ingredient Substitution Finder
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Find alternative ingredients using association rule mining. Based on ingredient co-occurrence patterns in recipes.
+              </p>
+
+              {/* Input Section */}
+              <div className="mb-6">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Enter an ingredient:
+                </label>
+                <div className="flex gap-4">
+                  <input
+                    type="text"
+                    value={substitutionInput}
+                    onChange={(e) => setSubstitutionInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && findSubstitutes()}
+                    placeholder="e.g., chicken, milk, eggs, pasta..."
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={findSubstitutes}
+                    disabled={loading}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                  >
+                    {loading ? 'Searching...' : 'Find Substitutes'}
+                  </button>
+                  {substitutionResults && (
+                    <button
+                      onClick={() => setSubstitutionResults(null)}
+                      className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition"
+                    >
+                      Hide All
+                    </button>
+                  )}
+                </div>
+                
+                <div className="mt-3 flex gap-3">
+                  <button
+                    onClick={loadAvailableIngredients}
+                    className="text-sm text-green-600 hover:text-green-700 underline"
+                  >
+                    View all available ingredients
+                  </button>
+                  {availableIngredients.length > 0 && (
+                    <button
+                      onClick={() => setAvailableIngredients([])}
+                      className="text-sm text-red-600 hover:text-red-700 underline"
+                    >
+                      Hide ingredients list
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Available Ingredients */}
+              {availableIngredients.length > 0 && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold text-gray-700 mb-2">Available Ingredients ({availableIngredients.length}):</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {availableIngredients.map(ing => (
+                      <button
+                        key={ing}
+                        onClick={() => setSubstitutionInput(ing)}
+                        className="px-3 py-1 bg-white border border-gray-300 rounded-full text-sm hover:bg-green-50 hover:border-green-500 transition"
+                      >
+                        {ing}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Results Section */}
+              {substitutionResults && (
+                <div className="mt-6">
+                  <div className="bg-gradient-to-r from-green-50 to-teal-50 rounded-lg p-6 mb-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      Ingredient: {substitutionResults.ingredient}
+                    </h3>
+                    
+                    {substitutionResults.ingredient_info && (
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p>Category: <span className="font-semibold">{substitutionResults.ingredient_info.category}</span></p>
+                        <p>Appears in: <span className="font-semibold">{substitutionResults.ingredient_info.appears_in}</span> recipes</p>
+                        <p>Frequency: <span className="font-semibold">{(substitutionResults.ingredient_info.frequency * 100).toFixed(1)}%</span></p>
+                      </div>
+                    )}
+                  </div>
+
+                  {substitutionResults.substitutes && substitutionResults.substitutes.length > 0 ? (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-800 mb-4">
+                        🔄 Recommended Substitutes:
+                      </h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {substitutionResults.substitutes.map((sub, idx) => (
+                          <div
+                            key={idx}
+                            className="bg-gradient-to-r from-green-100 to-teal-100 rounded-lg p-4 shadow-md hover:shadow-lg transition"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-bold text-lg text-gray-800">
+                                {idx + 1}. {sub.substitute}
+                              </h4>
+                              <button
+                                onClick={() => findSubstitutesFor(sub.substitute)}
+                                className="text-xs bg-white px-3 py-1 rounded hover:bg-green-600 hover:text-white transition"
+                              >
+                                Find more →
+                              </button>
+                            </div>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Confidence:</span>
+                                <span className="font-semibold text-green-700">
+                                  {(sub.confidence * 100).toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Support:</span>
+                                <span className="font-semibold text-blue-700">
+                                  {(sub.support * 100).toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Category:</span>
+                                <span className="font-semibold text-purple-700">
+                                  {sub.category}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Progress bars */}
+                            <div className="mt-3 space-y-2">
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-green-600 h-2 rounded-full transition-all"
+                                  style={{ width: `${sub.confidence * 100}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                        <h4 className="font-semibold text-gray-800 mb-2">📊 Understanding the Metrics:</h4>
+                        <ul className="text-sm text-gray-700 space-y-1">
+                          <li><strong>Confidence:</strong> How similar the substitute is based on usage context</li>
+                          <li><strong>Support:</strong> How frequently this ingredient appears in recipes</li>
+                          <li><strong>Category:</strong> The ingredient classification type</li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p className="text-lg">No substitutes found for "{substitutionResults.ingredient}"</p>
+                      <p className="text-sm mt-2">Try a different ingredient or check the available ingredients list</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Ingredient Clustering Tab */}
         {activeTab === 'clustering' && (
@@ -433,6 +704,135 @@ function App() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Cuisine Classification Tab */}
+        {activeTab === 'cuisine' && (
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                🌍 Cuisine Classifier
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Enter ingredients and our k-NN algorithm will predict the cuisine type from 32 world cuisines!
+              </p>
+
+              <div className="mb-6">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Ingredients (comma-separated):
+                </label>
+                <div className="flex gap-4">
+                  <input
+                    type="text"
+                    value={cuisineIngredients}
+                    onChange={(e) => setCuisineIngredients(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && predictCuisine()}
+                    placeholder="e.g., pasta, tomato sauce, mozzarella, basil"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={predictCuisine}
+                    disabled={cuisineLoading}
+                    className="bg-orange-600 text-white px-8 py-3 rounded-lg hover:bg-orange-700 transition disabled:opacity-50 font-semibold"
+                  >
+                    {cuisineLoading ? 'Predicting...' : 'Predict Cuisine'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Results */}
+              {cuisineResult && cuisineResult.success && (
+                <div className="mt-6 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-6">
+                  <div className="mb-6">
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                      🎯 Predicted Cuisine: <span className="text-orange-600">{cuisineResult.predicted_cuisine}</span>
+                    </h3>
+                    <p className="text-lg text-gray-700">
+                      Confidence: <span className="font-semibold text-green-600">{cuisineResult.confidence.toFixed(1)}%</span>
+                    </p>
+                  </div>
+
+                  {/* Top Predictions */}
+                  {cuisineResult.top_predictions && cuisineResult.top_predictions.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-700 mb-3">Top 3 Predictions:</h4>
+                      <div className="space-y-2">
+                        {cuisineResult.top_predictions.map((pred, idx) => (
+                          <div key={idx} className="bg-white rounded-lg p-3 flex items-center justify-between">
+                            <span className="font-medium">{idx + 1}. {pred.cuisine}</span>
+                            <div className="flex items-center gap-3">
+                              <div className="w-32 bg-gray-200 rounded-full h-3">
+                                <div 
+                                  className="bg-gradient-to-r from-orange-500 to-yellow-500 h-3 rounded-full"
+                                  style={{ width: `${pred.percentage}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-sm font-semibold text-gray-600 w-12">{pred.percentage.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Matched Ingredients */}
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600">
+                      Matched <span className="font-semibold">{cuisineResult.matched_count}</span> out of <span className="font-semibold">{cuisineResult.total_ingredients}</span> ingredients
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {cuisineResult.matched_ingredients.map((ing, idx) => (
+                        <span key={idx} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                          ✓ {ing}
+                        </span>
+                      ))}
+                    </div>
+                    {cuisineResult.unmatched_ingredients && cuisineResult.unmatched_ingredients.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {cuisineResult.unmatched_ingredients.map((ing, idx) => (
+                          <span key={idx} className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">
+                            ✗ {ing}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Similar Recipes */}
+                  {cuisineResult.nearest_recipes && cuisineResult.nearest_recipes.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-3">Similar Recipes from Dataset:</h4>
+                      <div className="grid gap-3">
+                        {cuisineResult.nearest_recipes.map((recipe, idx) => (
+                          <div key={idx} className="bg-white rounded-lg p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h5 className="font-semibold">{recipe.name}</h5>
+                                <p className="text-sm text-gray-600">{recipe.cuisine}</p>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {recipe.ingredients.map((ing, i) => (
+                                <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                  {ing}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {cuisineResult && !cuisineResult.success && (
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-700">{cuisineResult.error}</p>
                 </div>
               )}
             </div>
