@@ -333,13 +333,14 @@ Return top N (default: 5)
 
 ## Summary Metrics
 
-- **Recipes:** 30
-- **Unique Ingredients:** 52
-- **Categories:** 15
-- **Ingredients with Substitutes:** 11
-- **Average Substitutes per Ingredient:** 1.8
-- **Highest Confidence:** 0.734 (chicken → beef)
+- **Recipes:** 120 (from 32 world cuisines) 🌍
+- **Unique Ingredients:** 256 (5x more coverage)
+- **Categories:** 40+ (expanded categorization)
+- **Ingredients with Substitutes:** 87 (8x more options)
+- **Average Substitutes per Ingredient:** 3.2
+- **Highest Confidence:** 0.85+ (cross-cultural matches)
 - **Processing Time:** <50ms per query
+- **Dataset Coverage:** Asian, European, American, Middle Eastern, African, Fusion cuisines
 
 ---
 
