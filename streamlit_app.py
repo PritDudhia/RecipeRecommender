@@ -472,7 +472,7 @@ elif feature == "🥗 Nutrition Prediction":
         with col1:
             recipes = models['recommender'].get_all_recipes()
             recipe_options = {f"{r['name']} ({r['cuisine']})": r for r in recipes}
-            selected = st.selectbox("Select recipe", list(recipe_options.keys()), key="recipe_nutr")
+            selected = st.selectbox("Select recipe", list(recipe_options.keys()), key="recipe_select")
             
             if st.button("Get Nutrition", type="primary", key="get_recipe_nutr"):
                 recipe = recipe_options[selected]
