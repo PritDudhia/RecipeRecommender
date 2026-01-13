@@ -402,13 +402,13 @@ elif feature == "🌍 Cuisine Classification":
     col_a, col_b, col_c = st.columns(3)
     col_a.metric("Total Cuisines", stats['total_cuisines'])
     col_b.metric("Total Recipes", stats['total_recipes'])
-    col_c.metric("Avg per Cuisine", f"{stats['avg_recipes_per_cuisine']:.1f}")
+    col_c.metric("Total Ingredients", stats['total_ingredients'])
     
     # Distribution
     st.markdown("**Recipe Distribution by Cuisine:**")
-    df_stats = pd.DataFrame(stats['cuisine_distribution']).T.reset_index()
-    df_stats.columns = ['Cuisine', 'Count']
-    st.bar_chart(df_stats.set_index('Cuisine'))
+    df_stats = pd.DataFrame(stats['cuisine_distribution'])
+    if not df_stats.empty:
+        st.bar_chart(df_stats.set_index('cuisine')['count'])
 
 # ===== NUTRITION PREDICTION =====
 elif feature == "🥗 Nutrition Prediction":
