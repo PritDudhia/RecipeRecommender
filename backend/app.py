@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
+from models.cuisine_classifier import CuisineClassifier
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
@@ -8,6 +9,25 @@ CORS(app)  # Enable CORS for frontend communication
 # Configuration
 app.config['DEBUG'] = True
 app.config['JSON_SORT_KEYS'] = False
+
+# Initialize ML models
+cuisine_classifier = None
+
+def init_models():
+    """Initialize all ML models"""
+    global cuisine_classifier
+    
+    print("\n🤖 Initializing ML Models...")
+    
+    # Initialize Cuisine Classifier
+    cuisine_classifier = CuisineClassifier(n_neighbors=5)
+    cuisine_classifier.train()
+    print("✅ Cuisine classifier ready!")
+    
+    print("\n✨ All models initialized successfully!\n")
+
+# Initialize models on startup
+init_models()
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -64,6 +84,56 @@ def find_substitutes():
         'substitutes': [],
         'message': 'Substitution endpoint (to be implemented)'
     })
+
+@app.route('/api/cuisine/predict', methods=['POST'])
+def predict_cuisine():
+    """Predict cuisine type from ingredients"""
+    try:
+        data = request.get_json()
+        ingredients = data.get('ingredients', [])
+        
+        if not ingredients:
+            return jsonify({
+                'success': False,
+                'error': 'No ingredients provided'
+            }), 400
+        
+        result = cuisine_classifier.predict_cuisine(ingredients)
+        return jsonify(result)
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/cuisine/stats', methods=['GET'])
+def get_cuisine_stats():
+    """Get cuisine classification statistics"""
+    try:
+        stats = cuisine_classifier.get_cuisine_stats()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/cuisine/list', methods=['GET'])
+def get_cuisines():
+    """Get list of all available cuisines"""
+    try:
+        cuisines = cuisine_classifier.get_all_cuisines()
+        return jsonify({
+            'success': True,
+            'cuisines': cuisines,
+            'total': len(cuisines)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     print("🚀 Starting Recipe Recommender Backend...")
