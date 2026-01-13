@@ -476,15 +476,21 @@ elif feature == "🥗 Nutrition Prediction":
             
             if st.button("Get Nutrition", type="primary", key="get_recipe_nutr"):
                 recipe_id = recipe_options[selected]
-                result = models['nutrition'].predict_recipe(recipe_id)
-                st.session_state.recipe_nutr = result
+                try:
+                    result = models['nutrition'].predict_recipe(recipe_id=recipe_id)
+                    st.session_state.recipe_nutr = result
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
         
         with col2:
             if 'recipe_nutr' in st.session_state:
                 result = st.session_state.recipe_nutr
                 
-                st.success(f"**{result['recipe_name']}**")
-                st.write(f"*{result['cuisine']} cuisine*")
+                if isinstance(result, dict) and 'recipe_name' in result:
+                    st.success(f"**{result['recipe_name']}**")
+                    st.write(f"*{result['cuisine']} cuisine*")
+                else:
+                    st.error("Invalid result format")
                 
                 nutr = result['nutrition']
                 col_a, col_b, col_c, col_d = st.columns(4)
