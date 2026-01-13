@@ -396,7 +396,9 @@ class NutritionPredictor:
         # Predict each nutrient
         predictions = {}
         for nutrient, model in self.models.items():
-            predictions[nutrient] = float(model.predict(features_scaled)[0])
+            prediction = float(model.predict(features_scaled)[0])
+            # Ensure non-negative values (nutritional values can't be negative)
+            predictions[nutrient] = max(0, prediction)
         
         # Round values
         predictions['calories'] = round(predictions['calories'])
