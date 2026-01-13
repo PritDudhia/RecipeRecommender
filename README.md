@@ -2,6 +2,12 @@
 
 A smart recipe recommendation system with ML-powered ingredient substitution capabilities.
 
+## 🌐 Live Demo
+
+**[📱 Try it now!](https://pritrecipes.streamlit.app/)** - Interactive Streamlit app with all 5 ML features
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://pritrecipes.streamlit.app/)
+
 ## 🎯 Project Overview
 
 This web application helps users discover recipes based on available ingredients and suggests smart substitutions when ingredients are missing.
