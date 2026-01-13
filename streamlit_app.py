@@ -489,17 +489,17 @@ elif feature == "🥗 Nutrition Prediction":
                 if isinstance(result, dict) and 'recipe_name' in result:
                     st.success(f"**{result['recipe_name']}**")
                     st.write(f"*{result['cuisine']} cuisine*")
+                    
+                    nutr = result['nutrition']
+                    col_a, col_b, col_c, col_d = st.columns(4)
+                    col_a.metric("Calories", f"{nutr['calories']:.0f}")
+                    col_b.metric("Protein", f"{nutr['protein']:.1f}g")
+                    col_c.metric("Carbs", f"{nutr['carbs']:.1f}g")
+                    col_d.metric("Fat", f"{nutr['fat']:.1f}g")
+                    
+                    st.markdown(f"**Ingredients**: {', '.join(result['ingredients'])}")
                 else:
                     st.error("Invalid result format")
-                
-                nutr = result['nutrition']
-                col_a, col_b, col_c, col_d = st.columns(4)
-                col_a.metric("Calories", f"{nutr['calories']:.0f}")
-                col_b.metric("Protein", f"{nutr['protein']:.1f}g")
-                col_c.metric("Carbs", f"{nutr['carbs']:.1f}g")
-                col_d.metric("Fat", f"{nutr['fat']:.1f}g")
-                
-                st.markdown(f"**Ingredients**: {', '.join(result['ingredients'])}")
             else:
                 st.info("👆 Select a recipe")
     
