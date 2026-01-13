@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import './App.css'
 
+// Configure axios to use backend URL
+axios.defaults.baseURL = 'http://localhost:5000'
+
 function App() {
   const [apiStatus, setApiStatus] = useState('checking...')
   const [recipes, setRecipes] = useState([])

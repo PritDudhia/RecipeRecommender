@@ -230,8 +230,13 @@ def find_substitutes():
                 'error': 'No ingredient provided'
             }), 400
         
-        result = substitution_finder.get_substitutes(ingredient, top_n=top_n)
-        return jsonify(result)
+        substitutes = substitution_finder.get_substitutes(ingredient, top_n=top_n)
+        
+        return jsonify({
+            'success': True,
+            'ingredient': ingredient,
+            'substitutes': substitutes
+        })
     
     except Exception as e:
         return jsonify({
