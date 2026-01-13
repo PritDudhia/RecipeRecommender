@@ -148,19 +148,6 @@ def recommend_recipes():
         'recommended_recipes': []
     })
 
-@app.route('/api/substitute', methods=['POST'])
-def find_substitutes():
-    """Find ingredient substitutions"""
-    data = request.get_json()
-    ingredient = data.get('ingredient', '')
-    
-    # TODO: Implement substitution logic with Apriori
-    return jsonify({
-        'ingredient': ingredient,
-        'substitutes': [],
-        'message': 'Substitution endpoint (to be implemented)'
-    })
-
 @app.route('/api/cluster/ingredients', methods=['GET'])
 def cluster_ingredients():
     """Get ingredient clusters using k-means"""
