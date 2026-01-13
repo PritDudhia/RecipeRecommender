@@ -440,7 +440,7 @@ elif feature == "🥗 Nutrition Prediction":
                     st.warning("Please enter ingredients")
         
         with col2:
-            if 'nutr_pred' in st.session_state:
+            if 'nutr_pred' in st.session_state and 'nutr_ingr' in st.session_state:
                 st.success(f"Nutritional estimates for: {', '.join(st.session_state.nutr_ingr)}")
                 
                 pred = st.session_state.nutr_pred
